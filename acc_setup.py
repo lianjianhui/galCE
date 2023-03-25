@@ -1,10 +1,9 @@
 '''
-.. moduleauthor:: Jianhui Lian (ljh520hw@gmail.com)
+.. moduleauthor:: Jianhui Lian
 
 General purpose:
 ................
-
-
+The script to generate the gas accretion and star formation history. 
 '''
 
 from astropy.io import ascii
@@ -59,5 +58,3 @@ class gasAcc:
 		self.accH[id3] = acc_post
 		self.sfeH[id3] = sfe_postburst
 		
-	#def mw_bulge(self, ):	
-
