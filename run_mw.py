@@ -1,10 +1,10 @@
 '''
-.. moduleauthor:: Jianhui Lian
+.. moduleauthor:: Jianhui Lian (732592593@qq.com)
 
 General purpose:
 ................
 
-The script to set up the parameters of the GCE model tuned for the Milky Way's disk based on Lian et al. 2018b (arXiv.2007.03687).
+The script to set up the parameters of the general GCE model and run galce.py
 '''
 
 from pylab import *

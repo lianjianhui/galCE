@@ -4,7 +4,8 @@
 General purpose:
 ................
 
-The script to set up the parameters of the GCE model tuned for the Milky Way's disk based on Lian et al. 2018b (arXiv.2007.03687).
+The script to set up the parameters of the GCE model tuned for the Milky Way's bulge based on Lian et al. 2018c (arXiv.2007.12179).
+
 '''
 
 from pylab import *
@@ -22,16 +23,16 @@ twidth = 0.02
 ageUni = 13.7
 gasAcc = setup.gasAcc(twidth,ageUni)
 
-acc_initial = 0.1
+acc_initial = 1
 acc_secular = 0.
-acc_second = 0.1
+acc_second = 0.
 acc_post = 0.0
-sfe_initial = 1.8 #3
-sfe_secular = 0.3
-sfe_second = 0.8
-sfe_postburst = 0.2
+sfe_initial = 0.6 #3
+sfe_secular = 0.1
+sfe_second = 1
+sfe_postburst = 1
 time0 = 1.5
-time1 = 7
+time1 = 14
 dt = 1
 tau_sfe = 0.5
 tau_initial = 100

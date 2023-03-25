@@ -21,7 +21,9 @@ model = file[1].data
 abun = file[2].data
 feh = abun[:,25]
 mgh = abun[:,11]
+sih = abun[:,13]
 mgfe = mgh-feh
+sife = sih-feh
 dt = model['t'][1:]-model['t'][:-1]
 
 mass_lft = np.append(np.append(np.arange(180)*0.025+0.5,np.arange(30)*0.5+5),np.arange(21)*5+20)
@@ -52,7 +54,7 @@ pdf_age_norm = pdf_age/np.sum(pdf_age)
 mocksz = 5000 #number of stars in the mock catalog
 
 #mock catalog
-mock = np.zeros((mocksz,),dtype=[('age',float),('mass',float),('fe/h',float),('mg/fe',float)])
+mock = np.zeros((mocksz,),dtype=[('age',float),('mass',float),('fe/h',float),('mg/fe',float),('si/fe',float)])
 
 #sampling age distribution according to the probability distribution
 randices_age = np.random.choice(np.arange(len(model['t'])),mocksz,replace=True,p=pdf_age_norm)
@@ -61,6 +63,7 @@ randices_age = np.random.choice(np.arange(len(model['t'])),mocksz,replace=True,p
 sigma_age = 0.2
 sigma_feh = 0.02
 sigma_mgfe = 0.03
+sigma_sife = 0.03
 
 #age of mock stars
 ages = 13.7-model['t'][randices_age]
@@ -79,6 +82,7 @@ model_feh = feh
 model_mgfe = mgfe
 mock['fe/h'][:] = feh[randices_age]+np.random.normal(0,sigma_feh,len(mock))
 mock['mg/fe'][:] = mgfe[randices_age]+np.random.normal(0,sigma_mgfe,len(mock))
+mock['si/fe'][:] = sife[randices_age]+np.random.normal(0,sigma_sife,len(mock))
 
 #mass of mock stars
 birth_star = 13.7-mock['age']
