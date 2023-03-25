@@ -1,3 +1,12 @@
+'''
+.. moduleauthor:: Jianhui Lian
+
+General purpose:
+................
+
+The script to generate a mock catalog of stars for a given GCE model.
+'''
+
 from astropy.io import ascii
 from pylab import *
 from kimf import kimf
