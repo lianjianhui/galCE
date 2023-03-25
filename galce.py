@@ -4,7 +4,8 @@
 General purpose:
 ................
 
-The class galCE is dedicated to run the chemical evolution calculation. It gathers the parameters from galce_setup.py.
+The class galCE is dedicated to run the chemical evolution calculation. It takes the gas accretion and star formation history parameters from 
+acc_setup.py and other parameters from run_mw.py.
 
 '''
 from astropy.io import ascii
@@ -34,7 +35,7 @@ class galCE:
   self.gasAcc = gasAcc
   self.outputFile = outputFile
   self.imf = imf
-  self.fsn1a = 0.014
+  self.fsn1a = 0.012
   self.twidth = twidth        
   self.age_uni = 13.7
   self.t = np.arange(0,self.age_uni,twidth)
