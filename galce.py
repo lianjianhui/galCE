@@ -1,5 +1,5 @@
 '''
-.. moduleauthor:: Jianhui Lian (ljh520hw@gmail.com)
+.. moduleauthor:: Jianhui Lian (732592593@qq.com)
 
 General purpose:
 ................
