@@ -7,7 +7,7 @@ To run the GCE model, in the terminal type
 
 $python3 run_mw.py
 
-To check the output of the GCE model, including the model evolution track and simulated mock catalog, run model-track-mock-check.ipynb. 
+To check the output of the GCE model, including the model evolution track and simulated mock catalog, run example_multi_burst.ipynb or example_exp.ipynb for examples of different star formation histories. 
 
 If you have any questions, feel free to reach out to me (732592593@qq.com). 
 
