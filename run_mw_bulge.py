@@ -18,7 +18,7 @@ import subprocess
 
 t0 = time.time()
 
-# Gas accretion history
+# Set gas accretion history
 twidth = 0.02
 ageUni = 13.7
 gasAcc = setup.gasAcc(twidth,ageUni)
@@ -39,7 +39,6 @@ tau_initial = 100
 tau_second = 100
 
 gasAcc.mw_multi_burst(acc_initial, tau_initial, acc_secular, acc_second, tau_second, acc_post, sfe_initial, tau_sfe, sfe_secular, sfe_second, sfe_postburst, time0, time1, dt)
-#print (gasAcc.sfeH)
 
 #Run the chemical evolution code
 mgas0 = 0
@@ -51,8 +50,8 @@ yields = 'l18'
 dtd_1a_power = -1
 dtd_1a_min = 0.15
 
-filename = '%.4f' % acc_initial+'-%.4f' % acc_secular+'-%.4f' % acc_second+'-%.4f' % acc_post+'-%.2f' % sfe_initial+'-%.3f' % sfe_secular+'-%.2f' % sfe_second+'-%.2f' % sfe_postburst+'-%.1f' % time0+'-%.1f' % time1+'-%.1f' % dt+'-%.1f' % tau_sfe+'-%.1f' % tau_initial+'-%.1f' % tau_second+'-%.1f' % outflow+'.fits'
-outputFile = '/home/jianhui/projects/galce/tracks/multi-burst/'+filename
+filename = 'model1.fits'
+outputFile = '/home/jianhui/projects/galce/tracks/'+filename
 cemodel = galce.galCE(outputFile, gasAcc, mgas0, imf, outflow, twidth, nks, yields, dtd_1a_power, dtd_1a_min)
 cemodel.run()
 print (outputFile)

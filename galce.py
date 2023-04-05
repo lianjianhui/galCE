@@ -31,7 +31,8 @@ class galCE:
         # evolution time in Gyr
  '''
 
- def __init__(self, outputFile, gasAcc, mgas0=0, imf='kr', outflow=0, twidth=0.1, nks=1.5, yields_ccsn='l18', dtd_1a_power=-1, dtd_1a_min=0.2):
+ def __init__(self, outputFile, gasAcc, mgas0=0, imf='kr', outflow=0, twidth=0.1, nks=1.5, yields_ccsn='l18', dtd_1a_power=-1, dtd_1a_min=0.15, 
+              dtd_nsm_min=0.15, dtd_nsm_power=-1, mrsn_f=0):
   self.gasAcc = gasAcc
   self.outputFile = outputFile
   self.imf = imf
@@ -52,15 +53,35 @@ class galCE:
   self.dtd_1a_min = dtd_1a_min
   self.dtd_1a_max = 21 
   self.dtd_1a_power = -1
+  self.dtd_nsm_min = dtd_nsm_min
+  self.dtd_nsm_max = 1.e6
+  self.nsm_per_m = 2.e-5
+  self.nsm_m_ej = 2.5e-2
+  self.dtd_nsm_power = dtd_nsm_power
+  self.mrsn_f = mrsn_f
   self.solar = ascii.read('yields/solar_G07.txt',data_end=84)
   self.outflow = outflow
 
+  #SN-Ia and NSM DTD normalisation
+  temp_sampling = np.arange(self.dtd_1a_min,self.dtd_1a_max,0.01)
+  temp_sampling = 10**np.arange(log10(self.dtd_1a_min),log10(self.dtd_1a_max),0.01)
+  dt_sampling = temp_sampling[1:]-temp_sampling[:-1]
+  self.norm_1a_dtd = 1./np.sum(temp_sampling[:-1]**self.dtd_1a_power*dt_sampling)
+  temp_sampling = 10**np.arange(log10(self.dtd_nsm_min),log10(self.dtd_nsm_max),0.01)
+  dt_sampling = temp_sampling[1:]-temp_sampling[:-1]
+  self.norm_nsm_dtd = 1./np.sum(temp_sampling[:-1]**self.dtd_nsm_power*dt_sampling)
+
  def get_yields(self):
   self.agb = fits.getdata('yields/AGB-Cristallo15-cube-galce.fits')
+
   if self.yields_ccsn=='l18':
    self.snii = fits.getdata('yields/CCSN-LC18-cube-R-ave-galce.fits')
 
   self.sn1a = ascii.read('yields/yields_sn1a_i99_list.txt')
+
+  self.nsm = ascii.read('yields/yields_nsm_arnould07.txt')
+
+  self.mrsn = ascii.read('yields/yields_mrsn_nishimura15.txt')
 
  def streamline_yields(self,dmass,t,m_h):
   if self.imf=='kr':
@@ -70,12 +91,8 @@ class galCE:
    kk = sum(nk)
    numtot = kk*dmass
    num = kimf(self.mass_lft,dmass,slope1,slope1,slope2)
-
-  #SN-Ia rate and DTD
   id316 = (self.mrange>=3)&(self.mrange<=16)
   f316 = sum(nk[id316])
-  temp_sampling = np.arange(self.dtd_1a_min,self.dtd_1a_max,0.01)
-  norm_dtd = 1./np.sum(temp_sampling**self.dtd_1a_power*0.01)
 
   #lifetime and delay time in time grid 
   lft = fits.getdata('yields/lifetime-cube-230226.fits')/1.e9
@@ -86,26 +103,54 @@ class galCE:
   dtd_1a_id = np.arange(round((self.age_uni-t)/self.twidth))
   dtd_1a_sp = dtd_1a_id*self.twidth+self.twidth/2
   dtd_1a_valid = np.ones(len(dtd_1a_sp))
-  dtd_1a_valid[dtd_1a_sp<self.dtd_1a_min] = 0
+  dtd_1a_valid[dtd_1a_sp<=self.dtd_1a_min] = 0
+  dtd_nsm_id = np.arange(round((self.age_uni-t)/self.twidth))
 
+  #sample NSM DTD in a dense grid
+  dtd_nsm_sp = np.arange(0,13.7-t,0.001)
+  dtd_nsm_valid = np.ones(len(dtd_nsm_sp))
+  dtd_nsm_valid[dtd_nsm_sp<=self.dtd_nsm_min] = 0
+
+  t_id = round(t/self.twidth)
+
+  weight_sn1a = numtot*self.fsn1a*f316*self.norm_1a_dtd*dtd_1a_sp**self.dtd_1a_power*self.twidth*dtd_1a_valid
+  weight_nsm_dense = dmass*self.nsm_per_m*self.norm_nsm_dtd*dtd_nsm_sp**self.dtd_nsm_power*0.001*dtd_nsm_valid
+  weight_nsm_dense[np.isnan(weight_nsm_dense)] = 0
+  weight_nsm = np.zeros(round(self.age_uni/self.twidth)-t_id)
+
+  id_mrsn = (self.mass_lft>=13)&(self.mass_lft<=25)
+  num_mrsn = num
+  num_mrsn[~id_mrsn] = 0
+  weight_mrsn = num_mrsn*self.mrsn_f
+
+  t_multi = int(self.twidth/0.001)
+  for m in range(round(self.age_uni/self.twidth)-t_id):
+      weight_nsm[m] = np.sum(weight_nsm_dense[t_multi*m:t_multi*(m+1)])*self.nsm_m_ej
+  
   agbej = np.zeros((round(self.age_uni/self.twidth),84))
   sniiej = np.zeros((round(self.age_uni/self.twidth),84))
   sn1aej = np.zeros((round(self.age_uni/self.twidth),84))
+  nsmej = np.zeros((round(self.age_uni/self.twidth),84))
+  mrsnej = np.zeros((round(self.age_uni/self.twidth),84))
 
-  t_id = round(t/self.twidth)
-  test = np.bincount(lft_tid)
   for el in range(84):
    weights_agb = self.agb[el,:,idz_grid]*num
    agbej[t_id:t_id+np.max(lft_tid)+1,el] = np.bincount(lft_tid, weights=weights_agb[lft_z<self.age_uni-t])  
 
-   weights_snii = self.snii[el,:,idz_grid]*num
+   weights_snii = self.snii[el,:,idz_grid]*num*(1-self.mrsn_f)
    sniiej[t_id:t_id+np.max(lft_tid)+1,el] = np.bincount(lft_tid, weights=weights_snii[lft_z<self.age_uni-t])
 
-   sn1aej[t_id:,el] = np.bincount(dtd_1a_id, \
-           weights=self.sn1a['yields'][el]*numtot*self.fsn1a*f316*norm_dtd*dtd_1a_sp**self.dtd_1a_power*self.twidth*dtd_1a_valid)
+   sn1aej[t_id:,el] = np.bincount(dtd_1a_id, weights=self.sn1a['yields'][el]*weight_sn1a)
+
+   nsmej[t_id:,el] = np.bincount(dtd_nsm_id, weights=self.nsm['yields'][el]*weight_nsm)
+   
+   mrsnej[t_id:t_id+np.max(lft_tid)+1,el] = np.bincount(lft_tid, weights=self.mrsn['yields'][el]*weight_mrsn[lft_z<self.age_uni-t])
+
   self.agbej = self.agbej + agbej
   self.sniiej = self.sniiej + sniiej
   self.sn1aej = self.sn1aej + sn1aej
+  self.nsmej = self.nsmej + nsmej
+  self.mrsnej = self.mrsnej + mrsnej
 
   #calculate the rate of events
   agb_mass = np.zeros(len(self.mass_lft))
@@ -121,11 +166,19 @@ class galCE:
   sniirate[t_id:t_id+np.max(lft_tid)+1] = np.bincount(lft_tid, weights=weights_sniirate[lft_z<self.age_uni-t])
 
   sn1arate = np.zeros(round(self.age_uni/self.twidth))
-  sn1arate[t_id:] = np.bincount(dtd_1a_id, weights=numtot*self.fsn1a*f316*norm_dtd*dtd_1a_sp**self.dtd_1a_power*self.twidth*dtd_1a_valid)
+  sn1arate[t_id:] = np.bincount(dtd_1a_id, weights=weight_sn1a)
+
+  nsmrate = np.zeros(round(self.age_uni/self.twidth))
+  nsmrate[t_id:] = np.bincount(dtd_nsm_id, weights=weight_nsm/self.nsm_m_ej)
+
+  mrsnrate = np.zeros(round(self.age_uni/self.twidth))
+  mrsnrate[t_id:t_id+np.max(lft_tid)+1] = np.bincount(lft_tid, weights=weight_mrsn[lft_z<self.age_uni-t])
 
   self.agbrate = self.agbrate + agbrate
   self.sniirate = self.sniirate + sniirate
   self.sn1arate = self.sn1arate + sn1arate
+  self.nsmrate = self.nsmrate + nsmrate
+  self.mrsnrate = self.mrsnrate + mrsnrate
 
  def run(self):
   t0 = time.time()
@@ -143,7 +196,7 @@ class galCE:
   ml = mlr['col4'][600:900]
   e_ml = estimation(age,zh,ml)'''
 
-  output = np.zeros((len(self.t)-1,),dtype=[('t',float),('gasmass',float),('stellarmass',float),('sfr',float),('fe_h',float),('agb_rate',float),('snii_rate',float),('sn1a_rate',float)]) 
+  output = np.zeros((len(self.t)-1,),dtype=[('t',float),('gasmass',float),('stellarmass',float),('sfr',float),('fe_h',float),('agb_rate',float),('snii_rate',float),('sn1a_rate',float),('nsm_rate',float),('mrsn_rate',float)]) 
   output_abun = np.zeros((len(self.t)-1,84))
 
   #set initial abundance
@@ -153,13 +206,16 @@ class galCE:
   self.agbej = np.zeros((round(self.age_uni/self.twidth),84))
   self.sniiej = np.zeros((round(self.age_uni/self.twidth),84))
   self.sn1aej = np.zeros((round(self.age_uni/self.twidth),84))
-
+  self.nsmej = np.zeros((round(self.age_uni/self.twidth),84))
+  self.mrsnej = np.zeros((round(self.age_uni/self.twidth),84))
   self.agbrate = np.zeros(round(self.age_uni/self.twidth))
   self.sniirate = np.zeros(round(self.age_uni/self.twidth))
   self.sn1arate = np.zeros(round(self.age_uni/self.twidth))
-  
-  for i in range(len(self.t)-1):
+  self.nsmrate = np.zeros(round(self.age_uni/self.twidth))
+  self.mrsnrate = np.zeros(round(self.age_uni/self.twidth))
 
+  for i in range(len(self.t)-1):
+ 
    #calculate star formation rate
    sur_gas = self.mgas/self.area
    sfr = self.gasAcc.sfeH[i]*2.5*1.e-4*0.75**self.nks*sur_gas**self.nks*self.area*1.e-6 #KS law, Kennicutt et al. 1998
@@ -180,7 +236,6 @@ class galCE:
     avgz[0,2] = 0
 
    self.streamline_yields(dmass_star,self.t[i],self.fe_h)
-
    output['t'][i] = self.t[i]
    output['gasmass'][i] = round(log10(self.mgas),4)
    idinf = ~np.isinf(avgz[:,0])
@@ -189,6 +244,9 @@ class galCE:
    output['agb_rate'][i] = self.agbrate[i]
    output['snii_rate'][i] = self.sniirate[i]
    output['sn1a_rate'][i] = self.sn1arate[i]
+   output['nsm_rate'][i] = self.nsmrate[i]
+   output['mrsn_rate'][i] = self.mrsnrate[i]
+
    #if self.masscal:
    # for j in range(i):
    #  idy = self.agb['lt'] <= log10((self.t[i]-self.t[j])*1.e9) #identify the mass of a star with evolution time shorter than the age of Universe at t[i] 
@@ -209,8 +267,9 @@ class galCE:
 
 
    #mass of each element returned to the ISM 
-   rtn = self.agbej[i,:]+self.sniiej[i,:]+self.sn1aej[i,:]
-   #print (self.sniiej[i,25],self.sn1aej[i,25],self.agbej[i,25],self.fe_h)
+   rtn = self.agbej[i,:]+self.sniiej[i,:]+self.sn1aej[i,:]+self.nsmej[i,:]+self.mrsnej[i,:]
+   #rtn = self.sniiej[i,:]+self.sn1aej[i,:]
+   #print (self.t[i],self.sniiej[i,62],self.sn1aej[i,62],self.agbej[i,62],self.nsmej[i,62],self.fe_h)
 
    #current abundance in the ISM, atomic number ratio!
    if self.mgas>0:

@@ -14,9 +14,8 @@ import sys
 from astropy.io import fits
 
 #read in GCE model track
-acch = 'multi-burst'
 filename = sys.argv[1]
-file = fits.open('tracks/'+acch+'/'+filename)
+file = fits.open('tracks/'+filename)
 model = file[1].data
 abun = file[2].data
 feh = abun[:,25]
@@ -101,5 +100,5 @@ for i in range(len(model)-1):
 
 #save the mock catalog
 modelname = filename.split('fits')[0]
-ascii.write(mock,'mocks/'+acch+'/'+modelname+'txt',overwrite=1)
+ascii.write(mock,'mocks/'+modelname+'txt',overwrite=1)
 

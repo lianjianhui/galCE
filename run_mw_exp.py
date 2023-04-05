@@ -1,10 +1,10 @@
 '''
-.. moduleauthor:: Jianhui Lian
+.. moduleauthor:: Jianhui Lian (732592593@qq.com)
 
 General purpose:
 ................
 
-The script to set up the parameters of the GCE model tuned for the Milky Way's disk based on Lian et al. 2018b (arXiv.2007.03687).
+The script to set up the parameters of the general GCE model and run galce.py
 '''
 
 from pylab import *
@@ -34,10 +34,10 @@ time0 = 1.5
 time1 = 7
 dt = 1
 tau_sfe = 0.5
-tau_initial = 100
+tau_initial = 7
 tau_second = 100
 
-gasAcc.mw_multi_burst(acc_initial, tau_initial, acc_secular, acc_second, tau_second, acc_post, sfe_initial, tau_sfe, sfe_secular, sfe_second, sfe_postburst, time0, time1, dt)
+gasAcc.exp_single(acc_initial, tau_initial, sfe_initial)
 
 #Run the chemical evolution code
 mgas0 = 0
@@ -48,10 +48,13 @@ mgenhance = 0
 yields = 'l18'
 dtd_1a_power = -1
 dtd_1a_min = 0.15
+dtd_nsm_min = 0.01
+dtd_nsm_power = -1
+mrsn_f = 0.004
 
-filename = 'model2.fits'
+filename = 'model3.fits'
 outputFile = '/home/jianhui/projects/galce/tracks/'+filename
-cemodel = galce.galCE(outputFile, gasAcc, mgas0, imf, outflow, twidth, nks, yields, dtd_1a_power, dtd_1a_min)
+cemodel = galce.galCE(outputFile, gasAcc, mgas0, imf, outflow, twidth, nks, yields, dtd_1a_power, dtd_1a_min,dtd_nsm_min,dtd_nsm_power,mrsn_f)
 cemodel.run()
 print (outputFile)
 
